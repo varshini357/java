@@ -2,7 +2,13 @@ pipeline {
   agent {
     docker {
       image 'himavarshini123/jenkins-docker-agent'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
+      //args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
+    args """
+        --user root \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v ${WORKSPACE}:${WORKSPACE} \
+        -w ${WORKSPACE}
+      """
     }
   }
   stages {
