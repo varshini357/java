@@ -21,7 +21,7 @@ pipeline {
     }
     stage('Static Code Analysis') {
       environment {
-        SONAR_URL = "http://52.87.250.253:9000"
+        SONAR_URL = "http://54.242.185.218:9000"
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
@@ -53,8 +53,6 @@ pipeline {
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                 sh '''
-                    cd ${WORKSPACE}/java-maven-sonar-argocd-helm-k8s
-                    pwd
                     git config user.email "varr@gmail.com"
                     git config user.name "varshini"
                     BUILD_NUMBER=${BUILD_NUMBER}
