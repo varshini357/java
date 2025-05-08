@@ -4,7 +4,6 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
-        sh 'echo passed'
         git branch: 'main', url: 'https://github.com/varshini357/java.git'
       }
     }
@@ -13,9 +12,8 @@ pipeline {
       steps {
         script {
           docker.image('himavarshini123/jenkins-docker-agent').inside(
-            "--user root -v /var/run/docker.sock:/var/run/docker.sock -v ${env.WORKSPACE}:${env.WORKSPACE} -w ${env.WORKSPACE}"
+            "--user root -v /var/run/docker.sock:/var/run/docker.sock"
           ) {
-            sh 'ls -ltr'
             sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
           }
         }
@@ -28,7 +26,10 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+          sh '''
+            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+            mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=$SONAR_URL
+          '''
         }
       }
     }
@@ -36,15 +37,15 @@ pipeline {
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "himavarshini123/ultimate-cicd:${BUILD_NUMBER}"
-        REGISTRY_CREDENTIALS = credentials('docker-cred')
       }
       steps {
-        script {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && docker build -t ${DOCKER_IMAGE} .'
-          def dockerImage = docker.image("${DOCKER_IMAGE}")
-          docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
-            dockerImage.push()
-          }
+        withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          sh '''
+            cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+            docker build -t ${DOCKER_IMAGE} .
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            docker push ${DOCKER_IMAGE}
+          '''
         }
       }
     }
